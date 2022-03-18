@@ -12,12 +12,15 @@ from tokens import Token
 @dataclass
 class AST:
     program_name: str
-    base_node: "Node"
+    base_node: "List"
 
 @dataclass
-class Node:
+class BaseNode:
     row: int | tuple[int] 
     column: int | tuple[int]
+
+@dataclass
+class Node(BaseNode):
     children: list["Node"] = None
     parent: Optional["Node"] = None
 
@@ -61,9 +64,60 @@ class Node:
 
 
 @dataclass
-class List(Node):
-    pass
+class Scope(Node):
+    variables: dict = None
 
+    def __init__(self, *args, variables=None, **kwargs):
+        if variables is None:
+            variables = {}
+        self.variables = variables
+        super().__init__(*args, **kwargs)
+
+    def add_variable(self, variable: "Variable"):
+        self.variables[variable.name] = variable
+
+    def __str__(self, *args, **kwargs):
+        _str = '\n'
+        for var in self.variables.values():
+            _str = "{}\t{}\n".format(_str, var)
+        return _str
+        return str(self.variables)
+
+@dataclass
+class List(Node):
+    scope: "Scope" = None
+
+    def __init__(self, *args, scope=None, **kwargs):
+        if scope is None:
+            scope = Scope(0,0)
+        self.scope = scope
+        super().__init__(*args, **kwargs)
+
+
+    def __str__(self, *args, **kwargs):
+        output = ('Type: {type}\n'
+                  'Row:  {row}\n'
+                  'Col:  {col}\n'
+                  'Scope: {scope}\n'
+                  '{extra}')
+        extra = ''
+        if self.children:
+            child_text = self._stringify_children(*args, **kwargs)
+            extra = '{extra}{children}'.format(extra=extra, children=child_text)
+        return output.format(type=self.__class__.__name__, row=self.row, col=self.column, extra=extra,
+                            scope=self.scope)
+    
+    def emit(self):
+        list_output = "'"
+        for child in self.children:
+            match child:
+                case List(_):
+                    raise SyntaxError("Nested Lists Aren't Allowed at this time!")
+                case Space(_):
+                    pass
+                case Node(_):
+                    list_output="{}{}:".format(list_output, child.emit())
+        return "{}'".format(list_output).replace(":'", "'").replace("':", "'")
 
 @dataclass
 class Atom(Node):
@@ -101,6 +155,9 @@ class Atom(Node):
         return output.format(type=self.__class__.__name__, row=self.row, col=self.column, extra=extra)
 
 
+    def emit(self):
+        return self.data
+
 
 @dataclass
 class Space(Node):
@@ -118,6 +175,9 @@ class Space(Node):
         if self.data:
             extra = '{extra}Data: {data}\n'.format(extra=extra, data=self.data)
         return output.format(type=self.__class__.__name__, row=self.row, col=self.column, extra=extra)
+
+    def emit(self):
+        return self.data
 
 
 @dataclass
@@ -148,14 +208,11 @@ class NewLine(Space):
 class DoubleQuote(Space):
     data = '"'
 
-
 @dataclass
 class String(Text):
     pass
 
-
 def to_node(tokens: list[Token]):
-    print(tokens)
     symbol = ''.join([t.char for t in tokens])
     if re.match('[a-zA-Z\+\-\*\/]+[a-zA-Z0-9]*', symbol):
         return Atom.from_tokens(tokens)
@@ -250,7 +307,7 @@ def match_tokens(token: Token, base_node: Node, in_symbol=False, in_comment=Fals
     return base_node, in_symbol, in_comment, in_string, tokens_to_combine
 
 def parse_tokens(text: list[Token]):
-    base_node = Node(0, 0, list(), None)
+    base_node = List(0, 0, list(), None, scope=Scope(0,0))
     ast = AST("test", base_node)
     tokens_to_combine = []
     in_symbol = False
@@ -261,4 +318,4 @@ def parse_tokens(text: list[Token]):
     if tokens_to_combine:
         node = to_node(tokens_to_combine)
         base_node.add_child(node)
-    return ast.base_node
+    return ast
