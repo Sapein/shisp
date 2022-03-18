@@ -18,11 +18,8 @@ class AST:
 class BaseNode:
     row: int | tuple[int] 
     column: int | tuple[int]
-
-@dataclass
-class Node(BaseNode):
-    children: list["Node"] = None
-    parent: Optional["Node"] = None
+    children: list["Node"]
+    parent: Optional["Node"]
 
     def _stringify_children(self, *args, **kwargs):
         children_text = []
@@ -46,6 +43,12 @@ class Node(BaseNode):
             extra = '{extra}{children}'.format(extra=extra, children=child_text)
         return output.format(type=self.__class__.__name__, row=self.row, col=self.column, extra=extra)
 
+
+@dataclass
+class Node(BaseNode):
+    children: list["Node"] = None
+    parent: Optional["Node"] = None
+
     @classmethod
     def from_token(cls, token: Token) -> "Node":
         """ Turns a Token into a Node. """
@@ -56,6 +59,24 @@ class Node(BaseNode):
         row = (tokens[0].row, tokens[-1].row)
         col = (tokens[0].column, tokens[-1].column)
         return cls(row, col, list(), None)
+
+    def replace_child(self, child, replacement):
+        """ Replaces a child with another one """
+        index = self.children.index(child)
+        self.children.insert(index, replacement)
+        self.children.remove(child)
+        replacement.parent = self
+        replacement.children = child.children
+        for _child in child.children:
+            _child.replace_parent(replacement)
+        child.children.clear()
+        child.parent = None
+
+    def replace(self, replacement):
+        self.parent.replace_child(self, replacement)
+
+    def replace_parent(self, new_parent):
+        self.parent = new_parent
 
     def add_child(self, child: "Node"):
         """ Adds a child to a node. """
@@ -114,6 +135,8 @@ class List(Node):
                 case List(_):
                     raise SyntaxError("Nested Lists Aren't Allowed at this time!")
                 case Space(_):
+                    pass
+                case Text(_):
                     pass
                 case Node(_):
                     list_output="{}{}:".format(list_output, child.emit())
@@ -198,6 +221,25 @@ class Number(Atom):
 @dataclass
 class EndList(Space):
     data = ')'
+
+@dataclass
+class MacroCall(BaseNode):
+    macro: Node
+    macro_name :str
+    args: list
+    body: "list"
+
+    def __str__(self, *args, **kwargs):
+        print(1)
+        output = ('Type: {type}\n'
+                  'Row:  {row}\n'
+                  'Col:  {col}\n'
+                  'Name: {name}\n')
+
+        return output.format(type=self.__class__.__name__, row=self.row, col=self.column, name=self.macro_name)
+
+    def emit(self):
+        return self.macro.emit(self)
 
 
 @dataclass
