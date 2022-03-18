@@ -144,6 +144,10 @@ class EndList(Space):
 class NewLine(Space):
     data = '\n'
 
+@dataclass
+class DoubleQuote(Space):
+    data = '"'
+
 
 @dataclass
 class String(Text):
@@ -151,6 +155,7 @@ class String(Text):
 
 
 def to_node(tokens: list[Token]):
+    print(tokens)
     symbol = ''.join([t.char for t in tokens])
     if re.match('[a-zA-Z\+\-\*\/]+[a-zA-Z0-9]*', symbol):
         return Atom.from_tokens(tokens)
@@ -172,9 +177,12 @@ def match_tokens(token: Token, base_node: Node, in_symbol=False, in_comment=Fals
             if in_comment == True:
                 in_symbol = False
                 in_comment = False
-                node = to_node(tokens_to_combine)
-                base_node.add_child(node)
-                tokens_to_combine = []
+                if tokens_to_combine:
+                    node = to_node(tokens_to_combine)
+                    base_node.add_child(node)
+                    tokens_to_combine = []
+            if in_string == True:
+                raise SyntaxError("String can not pass newline!")
             base_node.add_child(NewLine.from_token(token))
             match base_node:
                 case Comment(_):
@@ -190,18 +198,28 @@ def match_tokens(token: Token, base_node: Node, in_symbol=False, in_comment=Fals
             base_node.add_child(node)
             base_node = node
             in_comment = True 
-        case Token(char='"') if in_comment == False:
-            pass
+        case Token(char='"') if in_comment == False and in_string == False:
+            if in_symbol == True:
+                raise SyntaxError('{}" not a valid symbol!'.format(''.join(tokens_to_combine)))
+            in_string = True
+            tokens_to_combine.append(token)
+        case Token(char='"') if in_string == True:
+            in_string = False
+            tokens_to_combine.append(token)
+            base_node.add_child(String.from_tokens(tokens_to_combine))
+            tokens_to_combine = []
+        case Token(char='"') if in_comment == True:
+            if tokens_to_combine:
+                base_node.add_child(to_node(tokens_to_combine))
+                tokens_to_combine = []
+            base_node.add_child(DoubleQuote.from_token(token))
         case Token(char="(") if in_comment == False:
             if in_symbol == True:
-                in_symbol = False
-                node = to_node(tokens_to_combine)
-                base_node.add_child(node)
-                tokens_to_combine = []
+                raise SyntaxError("{}( not a valid symbol!".format(''.join(tokens_to_combine)))
             new_node = List.from_token(token)
             base_node.add_child(new_node)
             base_node = new_node
-        case Token(char=")") if in_comment == False:
+        case Token(char=")") if in_comment == False and in_string == False:
             if in_symbol == True:
                 in_symbol = False
                 node = to_node(tokens_to_combine)
@@ -209,16 +227,18 @@ def match_tokens(token: Token, base_node: Node, in_symbol=False, in_comment=Fals
                 tokens_to_combine = []
             base_node.add_child(EndList.from_token(token))
             base_node = base_node.parent
-        case Token(char=' ') if in_comment == False:
+        case Token(char=' ') if in_comment == False and in_string == False:
             if in_symbol == True:
                 in_symbol = False
                 node = to_node(tokens_to_combine)
                 base_node.add_child(node)
                 tokens_to_combine = []
             base_node.add_child(Space.from_token(token))
-        case Token(_) if in_comment == False:
+        case Token(_) if in_comment == False and in_string == False:
             if not in_symbol:
                 in_symbol = True
+            tokens_to_combine.append(token)
+        case Token(_) if in_string == True:
             tokens_to_combine.append(token)
         case Token(char=' ') if in_comment == True:
             if tokens_to_combine:
