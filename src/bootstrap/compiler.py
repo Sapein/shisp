@@ -27,11 +27,27 @@ def compile_defun(node: MacroCall) -> str:
     name = node.children[0].data
     args = node.args
     body = compile_children(node.body)
+
+    definition = '\n{}() {{\n'.format(name)
     new_body = ['\t{}\n'.format(l) for l in body.split('\n')]
     body = ''.join(new_body).replace('\t\n', '')[:-1]
-    definition = '\n{}() {{\n'.format(name)
-    return '{}{body}\n}}\n\n'.format(definition,
-                                   body=body)
+
+    compiled_args = ""
+    arg_cleanup = "\n\tunset "
+    if args:
+        for index, arg in enumerate(args.children, 1):
+            compiled_args = ('{}\t{}="${}"\n'
+                            ).format(compiled_args,
+                                     arg.data,
+                                     index)
+        for arg in args.children:
+            arg_cleanup = '{}{} '.format(arg_cleanup,
+                                         arg.data)
+
+    return '{}{}\n{}\n{}\n}}\n'.format(definition,
+                                   compiled_args,
+                                   body,
+                                   arg_cleanup)
 
 def compile_node(node: Node) -> str:
     match node:
@@ -44,7 +60,7 @@ def compile_node(node: Node) -> str:
         case FunctionCall(_):
             return '{}'.format(node.data.name)
         case VariableRef(_):
-            return '${{{}}}'.format(node.data.name)
+            return '"${{{}}}"'.format(node.data.name)
         case ListNode(_):
             return compile_list(node)
     print(node)
