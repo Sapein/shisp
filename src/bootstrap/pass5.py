@@ -17,7 +17,7 @@ def check_scope(node: Node, name: str) -> tuple[bool, Optional[Variable]]:
     If not returns false.
     """
     try:
-        if isinstance(node, MacroCall) and node.macro_name == 'defun':
+        if isinstance(node, MacroCall) and (node.macro_name == 'defun' or node.macro_name == 'depun'):
             for node in node.args.children:
                 if name in node.data:
                     return True, node

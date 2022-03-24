@@ -241,3 +241,7 @@ class VariableRef(Node):
 @dataclass
 class FunctionCall(Node):
     pass
+
+@dataclass
+class ReturnNode(Node):
+    pass

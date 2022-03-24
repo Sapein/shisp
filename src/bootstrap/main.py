@@ -25,10 +25,10 @@ def run_compiler(file_name: str, output_file: Optional[str] = None):
         print("File {} not found!".format(file_name))
         return
     ast = parser.parse_tokens(tokenized, '.'.join(file_name.split('.')[:-1]))
-    ast.print_ast()
     ast = pass2.squash_ast(ast)
     ast = pass3.resolve_metamacros(ast)
     ast = pass4.expand_macros(ast)
+    ast.print_ast()
     ast = pass5.check_variables(ast)
     ast = pass6.replace_references(ast)
     output = compiler.compile(ast)

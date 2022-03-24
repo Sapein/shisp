@@ -21,7 +21,30 @@ class Boilerplate:
         return output
 
 
-from shisp_ast import AST, Node, ListNode, Number, String, VariableRef, MacroCall, Comment, FunctionCall
+from shisp_ast import AST, Node, ListNode, Number, String, VariableRef, MacroCall, Comment, FunctionCall, ReturnNode
+
+def compile_return(node: ReturnNode) -> str:
+    actual = node.children[0]
+    if node.parent.macro_name == "defun":
+        # IF we are defun
+        fname = node.parent.children[0].data
+        match actual:
+            case Number(_) | String(_) | VariableRef(_):
+                return ('__{}_RVAL={}'
+                ).format(fname,
+                         compile_node(actual))
+            case FunctionCall(_):
+                return ('{}'
+                 '__{}_RVAL="${{__{}_RVAL}}"'
+                ).format(compile_node(actual),
+                         fname,
+                         actual.data.name)
+            case ListNode(_):
+                if len(actual.children) == 0:
+                    return '__{}_RVAL=nil'.format(fname)
+                elif len(actual.children) >= 1:
+                    raise SyntaxError("")
+
 
 def compile_defun(node: MacroCall) -> str:
     name = node.children[0].data
@@ -32,6 +55,7 @@ def compile_defun(node: MacroCall) -> str:
     new_body = ['\t{}\n'.format(l) for l in body.split('\n')]
     body = ''.join(new_body).replace('\t\n', '')[:-1]
 
+
     compiled_args = ""
     arg_cleanup = "\n\tunset "
     if args:
@@ -40,6 +64,7 @@ def compile_defun(node: MacroCall) -> str:
                             ).format(compiled_args,
                                      arg.data,
                                      index)
+
         for arg in args.children:
             arg_cleanup = '{}{} '.format(arg_cleanup,
                                          arg.data)
@@ -56,13 +81,15 @@ def compile_node(node: Node) -> str:
         case Number(_):
             return node.data
         case String(_):
-            return node.data#[1:-1]
+            return node.data
         case FunctionCall(_):
             return '{}'.format(node.data.name)
         case VariableRef(_):
             return '"${{{}}}"'.format(node.data.name)
         case ListNode(_):
             return compile_list(node)
+        case ReturnNode(_):
+            return compile_return(node)
     print(node)
     raise SyntaxError("Unknown Node!")
 
