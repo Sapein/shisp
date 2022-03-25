@@ -56,7 +56,7 @@ class Function():
     args: Optional[list[Node]] = None
 
     def __str__(self, *args, **kwargs):
-        return "Function"
+        return self.__class__.__name__
 
 
 @dataclass
@@ -67,3 +67,8 @@ class PureFunction(Function):
 @dataclass
 class Func_Argument(Variable):
     value: Any = None
+
+
+@dataclass
+class Macro(Function):
+    pass

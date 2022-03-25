@@ -84,7 +84,7 @@ class Node(BaseNode):
         replacement.parent = self
         if not replacement.children:
             replacement.children = [c for c in child.children]
-        for _child in child.children:
+        for _child in replacement.children:
             _child.replace_parent(replacement)
         child.children.clear()
 
@@ -199,8 +199,24 @@ class Space(Node):
 
 @dataclass
 class Symbol(Atom):
-    pass
+    def escape_data(self):
+        def escape(c):
+            match c:
+                case '+':
+                    return 'plus'
+                case '-':
+                    return 'minus'
+                case '/':
+                    return 'div'
+                case '*':
+                    return 'star'
+                case _:
+                    return c
 
+        escaped = []
+        for c in self.data:
+            escaped.append(escape(c))
+        return ''.join(escaped)
 
 @dataclass
 class Comment(Atom):

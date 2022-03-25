@@ -30,8 +30,8 @@ def run_compiler(file_name: str, output_file: Optional[str] = None):
     ast = pass4.expand_macros(ast)
     ast = pass5.check_variables(ast)
     ast = pass6.replace_references(ast)
-    # ast.print_ast()
     output = compiler.compile(ast)
+    print(ast.program_name)
     if not output_file:
         output_file = '{}.sh'.format(ast.program_name)
     with open(output_file,'w') as f:

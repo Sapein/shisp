@@ -39,7 +39,7 @@ def check_node(child: Node):
         case ReturnNode(_):
             check_node(child.children[0])
         case Symbol(_):
-            in_scope, var = check_var_in_scope(child.parent, child.data)
+            in_scope, var = check_var_in_scope(child.parent, child.escape_data())
             if not in_scope:
                 raise SyntaxError(("Variable {} is undefined!\n"
                                    "TODO: Better Error"

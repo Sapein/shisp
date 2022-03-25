@@ -61,7 +61,10 @@ def squash_node(node: Node):
             return None
         case String(_):
             return node
-    raise SyntaxError("Unknown Node {}!".format(node))
+        case Node(data="'"):
+            return squash_symbol(node)
+
+    raise SyntaxError("Unknown Node")
 
 
 def squash_ast(ast: AST) -> AST:

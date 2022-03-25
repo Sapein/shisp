@@ -24,8 +24,8 @@ def to_node(tokens: list[Token], in_string=False) -> Node:
     return Node.from_tokens(tokens)
 
 
-def match_tokens(token: Token, base_node: Node, context=(False, False, False), tokens_to_combine=None):
-    in_symbol, in_comment, in_string = context
+def match_tokens(token: Token, base_node: Node, context=(False, False, False, False), tokens_to_combine=None):
+    in_symbol, in_comment, in_string, in_quote = context
     if tokens_to_combine is None:
         tokens_to_combine = []
     match token:
@@ -61,7 +61,9 @@ def match_tokens(token: Token, base_node: Node, context=(False, False, False), t
             in_comment = True 
         case Token(char='"') if in_comment == False and in_string == False:
             if in_symbol == True:
-                raise SyntaxError('{}" not a valid symbol!\nTODO: Better Error'.format(''.join(tokens_to_combine)))
+                raise SyntaxError(('"{}" not a valid symbol!'
+                                   '\nTODO: Better Error'
+                                  ).format(''.join([c.char for c in tokens_to_combine])))
             in_string = True
             tokens_to_combine.append(token)
         case Token(char='"') if in_string == True:
@@ -76,7 +78,9 @@ def match_tokens(token: Token, base_node: Node, context=(False, False, False), t
             base_node.add_child(DoubleQuote.from_token(token))
         case Token(char="(") if in_comment == False and in_string == False:
             if in_symbol == True:
-                raise SyntaxError("{}( not a valid symbol!\nTODO: Better Error".format(''.join(tokens_to_combine)))
+                raise SyntaxError(('"{}" not a valid symbol!'
+                                   '\nTODO: Better Error'
+                                  ).format(''.join([c.char for c in tokens_to_combine])))
             new_node = Expr.from_token(token)
             base_node.add_child(new_node)
             base_node = new_node
@@ -108,7 +112,7 @@ def match_tokens(token: Token, base_node: Node, context=(False, False, False), t
             base_node.add_child(Space.from_token(token))
         case Token(_) if in_comment == True:
             tokens_to_combine.append(token)
-    return base_node, (in_symbol, in_comment, in_string), tokens_to_combine
+    return base_node, (in_symbol, in_comment, in_string, in_quote), tokens_to_combine
 
 def parse_tokens(text: list[Token], program_name="test.shisp") -> AST:
     """
@@ -117,7 +121,7 @@ def parse_tokens(text: list[Token], program_name="test.shisp") -> AST:
     base_node = Expr(0, 0, list(), None, scope=Scope())
     ast = AST(program_name, base_node)
     tokens_to_combine = []
-    context = (False, False, False)
+    context = (False, False, False, False)
     for token in text:
         base_node, context, tokens_to_combine = match_tokens(token, base_node, context, tokens_to_combine)
     if tokens_to_combine:

@@ -31,7 +31,7 @@ def compile_return(node: ReturnNode) -> str:
     actual = node.children[0]
     if node.parent.parent.macro_name == "defun":
         # IF we are defun
-        fname = node.parent.parent.children[0].data
+        fname = node.parent.parent.children[0].escape_data()
         match actual:
             case Number(_) | String(_) | VariableRef(_):
                 return ('__{}_RVAL={}'
@@ -47,7 +47,7 @@ def compile_return(node: ReturnNode) -> str:
                 return '{} | read __{}_RVAL'.format(compile_expr(actual), fname)
     elif node.parent.parent.macro_name == 'depun':
         # IF we are depun
-        fname = node.parent.parent.children[0].data
+        fname = node.parent.parent.children[0].escape_data()
         match actual:
             case Number(_) | String(_):
                 return ('printf -- {}\n'
@@ -68,7 +68,7 @@ def compile_return(node: ReturnNode) -> str:
                 return ('printf -- $({})\n').format(compile_expr(actual))
 
 def compile_depun(node: MacroCall) -> str:
-    name = node.children[0].data
+    name = node.children[0].escape_data()
     args = node.args
     body = compile_children(node.body[0])
 
@@ -121,7 +121,7 @@ def compile_defun(node: MacroCall) -> str:
                                    ''.join(body),
                                    arg_cleanup)
 
-def compile_node(node: Node) -> str:
+def compile_node(node: Node, escaped=True) -> str:
     match node:
         case Comment(_):
             return ''
@@ -132,14 +132,16 @@ def compile_node(node: Node) -> str:
         case FunctionCall(_):
             return '{}'.format(node.data.name)
         case VariableRef(_):
-            return '"${{{}}}"'.format(node.data.name)
+            return '${{{}}}'.format(node.data.name)
         case Expr(_):
             return compile_expr(node)
         case ReturnNode(_):
             return compile_return(node)
+        case Symbol(_) if escaped == True:
+            return node.escape_data()
         case Symbol(_):
             return node.data
-    print(type(node))
+    print(node)
     raise SyntaxError("Unknown Node!")
 
 
@@ -149,7 +151,7 @@ def compile_expr(node: Expr) -> str:
     has_mcal = reduce(or_, [isinstance(c, MacroCall) for c in node.children])
 
     if has_expr or has_fcal or has_mcal:
-        return ''.join(compile_children(node))
+        return ' '.join(compile_children(node))
     elif len(node.children) == 0:
         return '"nil"'
     else:
@@ -198,8 +200,7 @@ def compile_children(node: Node) -> list[str]:
             case MacroCall(macro_name='quote'):
                 output.append(compile_quote(child.body))
             case MacroCall(macro_name='shell-literal'):
-                output.append(' '.join([compile_node(c) for c in child.body]))
-                output.append('\n')
+                output.append(' '.join([compile_node(c, False) for c in child.body]))
             case MacroCall(macro_name='let'):
                 match child.body[0]:
                     case FunctionCall(_):
