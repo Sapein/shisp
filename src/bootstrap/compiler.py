@@ -24,7 +24,7 @@ class Boilerplate:
         return output
 
 
-from shisp_ast import AST, Node, Expr, Number, String, VariableRef, MacroCall, Comment, FunctionCall, ReturnNode
+from shisp_ast import AST, Node, Expr, Number, String, VariableRef, MacroCall, Comment, FunctionCall, ReturnNode, Symbol
 
 def compile_return(node: ReturnNode) -> str:
     actual = node.children[0]
@@ -88,6 +88,8 @@ def compile_node(node: Node) -> str:
             return compile_expr(node)
         case ReturnNode(_):
             return compile_return(node)
+        case Symbol(_):
+            return node.data
     print(type(node))
     raise SyntaxError("Unknown Node!")
 
@@ -108,6 +110,9 @@ def compile_children(node: Node) -> list[str]:
     output = []
     for child in node.children:
         match child:
+            case MacroCall(macro_name='shell-literal'):
+                print([compile_node(c) for c in child.body])
+                output.append(' '.join([compile_node(c) for c in child.body]))
             case MacroCall(macro_name='let'):
                 match child.body[0]:
                     case FunctionCall(_):
@@ -132,5 +137,5 @@ def compile(ast: AST) -> str:
     """
     Compiles the AST to POSIX Shell
     """
-    return '{}\n{}'.format(Boilerplate(),
+    return '{}\n{}\n'.format(Boilerplate(),
                            ''.join(compile_children(ast.base_node)))

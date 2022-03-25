@@ -4,11 +4,12 @@ purposes
 """
 
 
+from functools import reduce
 from dataclasses import dataclass
 from typing import Optional
 
 
-from shisp_ast import Node, MacroCall, Expr, Symbol, ReturnNode, Comment
+from shisp_ast import Node, MacroCall, Expr, Symbol, ReturnNode, Comment, Atom
 from ast_data import Builtin, Variable, Function, Scope, Func_Argument
 
 
@@ -137,3 +138,41 @@ class Defun(Builtin):
                                    "TODO: Better Error message"))
         else:
             return ast
+@dataclass
+class Shell_Literal(Builtin):
+    """
+    This allows for the definition of shell literals
+    """
+    name = 'shell-literal'
+
+
+    @staticmethod
+    def valid_syntax(ast: Node) -> bool:
+        """
+        Checks if the syntax is called properly or not.
+        """
+        return len(ast.children) >= 2 and reduce(lambda x, y: x and y, 
+                                                 [isinstance(c, Atom) for c in ast.children])
+
+
+    @classmethod
+    def meta_eval(cls, ast: Node) -> MacroCall:
+        """
+        This evaluates the 'metamacro'. 
+        
+        the 'ast' is the immediate parent of the 'shell-literal' symbol.
+        """
+        if cls.is_call(ast):
+            if cls.valid_syntax(ast):
+                literals = ast.children[1:]
+
+                return MacroCall(ast.row, ast.column, ast.children[1:], 
+                                 None, cls, cls.name, [], literals)
+            else:
+                raise SyntaxError(("shell-literal takes at least two arguments, and arguments must be atoms!\n"
+                                   "Usage: `(shell-literals literal...)`\n"
+                                   "TODO: Better Error message"))
+        else:
+            return ast
+
+

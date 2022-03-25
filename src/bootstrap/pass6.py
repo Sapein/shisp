@@ -30,6 +30,8 @@ def check_children(nodes: list[Node]):
                     isinstance(child.data.value, Function)):
                     call = FunctionCall.from_node(child)
                     child.replace(call)
+            case MacroCall(macro_name="shell-literal"):
+                pass
             case MacroCall(_):
                 check_children(child.body)
             case Expr(_):
