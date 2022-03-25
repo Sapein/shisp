@@ -1,164 +1,85 @@
 # Shisp Language Information
+ This document provides a variety of information for the Shisp Programmling Language.
 
-## Language Grammar notes
-### Variable Definitions
-Variables are defined by the `let` macro. All Variable names that meet the
-following RegEx are valid: `[A-Za-z_-\+\*\/]+[0-9A-Za-z_-\+\*\/]*`
+## Syntax Grammar
 
-When compiling, any names that are invalid variable names in POSIX Shell
- will be subsituted with the English Name for that character.
-For example: '+' -> 'Plus' and '-' -> 'Hyphen'
+SYMBOL := `[A-Za-z-_\+\/\*]+[A-Za-z-_\+\/\*]*`;
+NUMBER := `[0-9]`;
+STRING := ` '"' [^"] '"'`;
+ATOM := `SYMBOL | NUMBER | STRING`;
+LIST := `'(' SYMBOL* ')'`;
+COMMENT := `';' .* '\n'`;
 
+## Special Forms
+### let
+`(let varname varvalue)`
 
-### Function Definitions
-Functions are defined with either the `defun` or `depun` macro. The last
-expression in the body of a function is returned.
+### defun
+`(defun funcname (arglist) body..)`
 
-The exact method of return is implementation defined.
+### depun
+`(depun funcname (arglist) body..)`
 
-Valid names for methods are the same as variable, with the same rule for
-escaping, excepting that it only needs to subsititute invalid function name
-characters.
+### shell-literal
+`(shell-literal literals..)`
 
-### Macro Definitions
+### quote
+`(quote ...)`
+### quasi-quote
+`(quasiquote ...)`
 
-## Standard Library
+### unquote
+`(unquote ...)`
 
-### Macros
-#### Meta
-Meta-Macros are an implementation only macro that works on the 'meta' language level.
+### demac
+`(demac name (arglist) body...)`
 
-##### let  
-The `let` macro defines a variable within the current scope. 
+## Shisp Macro System
+ The Shisp Macro Systems does not aim to be hygenic, however it does seek to establish
+a basic system for Macros within Shisp. This section describes how it works within Shisp.
 
-Usage:
-```
-(let varname varval)
-```
+ Macros are treated almost the same as regular functions, however they are executed at compile
+time. The arglist is what is passed into the macro. If more arguments are passed than argument,
+then the compiler *will* issue a warning and attempt to destructure it as much as possible with
+the final argument containing the remaining expression as a list. The Compiler *may* issue an error
+and cease compilation with an appropriate diagnostic message if chosen to do so.
 
-##### defun  
-The `defun` macro defines an impure function within the current scope.
+## Special Variables  
+ As shisp compiles to POSIX Shell, some 'special variables' exist that are accessible within
+shisp that are not within any scope, but provide information. The variables, their functionality,
+and what they should be treated as within the Shell Output is listed.
 
-An impure function may modify variables globally which may be seen by other functions,
-unless called within a pure function.
+| Shisp Symbol | POSIX Shell Equivelant |            Meaning                 |
+|--------------|------------------------|------------------------------------|
+|     fargs    |          $@            | All arguments passed to a function |
 
-Usage:
-```
-(defun name (arglist) body...)
-```
+## Function Calling and Returning in POSIX Shell  
+ Due to limitations within POSIX Shell, Shisp must implement a specific mechanism to allow
+for the returning of information other than just numbers from functions. To support this, Shisp requires
+the following for usage with Impure Functions and Pure Functions.
 
-##### depun  
-The `depun` macro defines a pure function within the current scope.
-
-A pure function may modify variables globally *HOWEVER* any global modifications are
-discarded at the end of the function execution. Only functions called within the function
-may see modifications made by it or by impure functions called by a pure function. If
-another pure function is called, it acts the same as if you called a pure function from
-an impure function.
-
-Usage:
-```
-(depun name (arglist) body...)
-```
-
-## Shisp Language Runtime
-The Shisp language, as it is designed with features not necessarily available in
-shells does contain a 'Language Runtime' known as the Shisp Language Runtime
-(SLR). The SLR defines how Shisp code compiles down to Shell in some circumstances.
-
-### Name Mangling  
-An implementation *may* provide name mangling for functions and variables to deal
-with potential issues without doing so in regular POSIX Shell. If an implementation
-choses to do Name Mangling the following conditions MUST be met:
-
-1. The Mangling *MUST* be consistent and dependent upon no outside or random factors.
-2. The Mangling *MUST* have some way of determining the original name.
-3. The Mangling *MUST* be able to be disabled.
-
-In addition, implementations *MUST* provide the following under the Shebang line in compiled
-output if it uses name mangling:
-```sh
-#shisp::name-mangling={MANGLE_PATTERN}
-```
-where MANGLE_PATTERN is a pattern able to be used to extract the relevant name in case
-conflicting implementations are used.
-
-Implementations may also chose to use 'name comments' in addition to the mangle pattern. 
-Name comments take the following form:
-`#shisp::name {ORIGINAL} {MANGLED}`
-where original is the unmangled name, and mangled is the form as mangled by the compiler.
-
-This may be used in cases where name-mangling is inconsistent with the mangle-pattern,
-or where it is required for usage.
-
-
-### Functions
-Shisp has two different types of Functions, impure and pure functions. `defun` will
-always make an impure function and `depun` will always make a pure function. 
-
-In Shisp all functions returns the last executed statement/expression.
-
-Impure functions are defined:
-```bash
-name() {
-[arglist]
-[body]
-[unset arglist]
-}
-```
-where arglist is the arglist for the impure function, body is the function's body
-and unset arglist unsets all set arguments.
-
-Pure functions are defined:
-```bash
-name() (
-[arglist]
-[body]
-[unset arglist]
-)
-```
-where arglist is the arglist for the pure function, body is the function's body
-and unset arglist unsets all arguments. Unset arglist *may* be ommitted.
-
-#### Returning Values
-When returning values from Functions, the implementation may use one of several methods.
-
-
-### Returning Values 
-When returning values from Functions the runtime provides a variable for each function
-called `__{FUNCTION_NAME}_RETVAL` where Function Name is the cannonical version of the
-function name *after* any modifications have been made internally. These variables are
-considered write once and read once, and may only be read after the function is called.
-The variable *may* be omitted IF and ONLY IF the following conditions are met:
-- The function *does not* return any actual values deliberately 
-    OR
-- The function *ONLY* returns numbers, in which case the default POSIX return
-   mechanism may be used
 
 ### Pure Functions  
-Pure functions use the alternative POSIX Function syntax for using a subshell when
-compiled, UNLESS they pass back a non-integer return value. In which case it may either
-- Use a regular POSIX Shell Function definition, and use custom variables that are created/destroyed
-   at the start and end of functions to prevent actual modifications, except for the return variable.
-     -OR-
-- Use the subshell syntax and use temporary functions or some other mechanism to pass information back
-   to a stub-function that handles the return variable.
-     -OR-
-- Use a stub function that stores a copy of all variables accessible to the function.
+ All pure functions return data through the following mechanism: the result of the last expr will be stored
+and then be 'returned' to program through printing the result. The resulting output *SHOULD* use the printf
+function and use appropiate escaping to ensure errors do not occur. All printf returns *MUST* end in a newline.
+The result may be directly stored using a subshell.
 
-## Optimizations
-This section describes Optimizations the compiler *can* perform that may otherwise cause issues with
-this section and that have additional requirements.
+### Impure Functions
+  All Impure Functions *MUST* return through a specially defined variable for that function that is defined as:
+`__{fname}__RVAL_`, where fname is the name of the function. The variable is set to the result of the last
+expression through a mechanism that does *NOT* use subshells. An example result is as follows:
+```sh
+command | read __{fname}__RVAL_
+```
 
-### Impure to Pure functions  
+when the result is stored in a variable, the code should compile down to calling the function, and *then* assigning
+the result to the return variable.
 
-The compiler *can* compile an Impure function as a pure function IF AND ONLY IF:
-1. The Function does *NOT* write to any variables that are not defined within that function,
-    AND
-2. The Function does *NOT* call any other impure functions directly or indirectly 
-    OR
-3. The Function calls an Impure Function that is able to be compiled to a Pure Function.
-
-A Pure Function can *NOT* be compiled to an Impure Function.
-
-## Shisp Language ABI
+## Types
+The following basic types are provided for in Shisp:
+- Lists
+- Strings
+- Numbers
+- Symbols
+- Atoms
