@@ -26,6 +26,7 @@ class Boilerplate:
 
 from shisp_ast import AST, Node, Expr, Number, String, VariableRef, MacroCall, Comment, FunctionCall, ReturnNode, Symbol
 
+
 def compile_return(node: ReturnNode) -> str:
     actual = node.children[0]
     if node.parent.parent.macro_name == "defun":
@@ -44,6 +45,54 @@ def compile_return(node: ReturnNode) -> str:
                          actual.data.name)
             case Expr(_):
                 return '{} | read __{}_RVAL'.format(compile_expr(actual), fname)
+    elif node.parent.parent.macro_name == 'depun':
+        # IF we are depun
+        fname = node.parent.parent.children[0].data
+        match actual:
+            case Number(_) | String(_):
+                return ('printf -- {}\n'
+                       ).format(compile_node(actual))
+            case VariableRef(_):
+                return ('printf -- {}\n'
+                       ).format(compile_node(actual))
+            case FunctionCall(_):
+                if actual.pure:
+                    return ('printf -- $({})\n'
+                           ).format(compile_node(actual))
+                else:
+                    return ('{}'
+                            'printf -- ${{__{}_RVAL}}\n'
+                           ).format(compile_node(actual),
+                                    actual.data.name)
+            case Expr(_):
+                return ('printf -- $({})\n').format(compile_expr(actual))
+
+def compile_depun(node: MacroCall) -> str:
+    name = node.children[0].data
+    args = node.args
+    body = compile_children(node.body[0])
+
+    definition = '\n{}() (\n'.format(name)
+    body = ['\t{}'.format(l) for l in body]
+
+    compiled_args = ""
+    arg_cleanup = "\n\tunset "
+    if args:
+        for index, arg in enumerate(args.children, 1):
+            compiled_args = ('{}\t{}="${}"\n'
+                            ).format(compiled_args,
+                                     arg.data,
+                                     index)
+
+        for arg in args.children:
+            arg_cleanup = '{}{} '.format(arg_cleanup,
+                                         arg.data)
+
+    return '{}{}\n{}{}\n)\n'.format(definition,
+                                   compiled_args,
+                                   ''.join(body),
+                                   arg_cleanup)
+
 
 
 def compile_defun(node: MacroCall) -> str:
@@ -106,19 +155,60 @@ def compile_expr(node: Expr) -> str:
     else:
         return ' '.join(compile_children(node))
 
+def compile_quote(body: list[Node]) -> str:
+    def _compile_node(node: Node) -> str:
+        match node:
+            case Expr(_):
+                output = []
+                for child in node.children:
+                    output.append(_compile_node(child))
+                return '({})'.format(' '.join(output))
+            case Node(_):
+                return node.data
+        raise SyntaxError
+    output = []
+    for node in body:
+        output.append(_compile_node(node))
+    return "'{}'".format(' '.join(output))
+
+def compile_quasiquote(body: list[Node]) -> str:
+    raise NotImplementedError
+    def _compile_node(node: Node) -> str:
+        match node:
+            case Expr(_):
+                output = []
+                for child in node.children:
+                    output.append(_compile_node(child))
+                return '({})'.format(' '.join(output))
+            case Node(_):
+                return node.data
+        raise SyntaxError
+    output = []
+    for node in body:
+        output.append(_compile_node(node))
+    return "'{}'".format(' '.join(output))
+
+
 def compile_children(node: Node) -> list[str]:
     output = []
     for child in node.children:
         match child:
+            case MacroCall(macro_name='quasi-quote'):
+                raise NotImplementedError
+            case MacroCall(macro_name='quote'):
+                output.append(compile_quote(child.body))
             case MacroCall(macro_name='shell-literal'):
-                print([compile_node(c) for c in child.body])
                 output.append(' '.join([compile_node(c) for c in child.body]))
+                output.append('\n')
             case MacroCall(macro_name='let'):
                 match child.body[0]:
                     case FunctionCall(_):
-                        asmnt = ('{{value}}\n'
-                                 '{{name}}="${{{{__{}_RVAL}}}}"\n'
-                                ).format(child.body[0].data.name)
+                        if not child.body[0].is_pure:
+                            asmnt = ('{{value}}\n'
+                                     '{{name}}="${{{{__{}_RVAL}}}}"\n'
+                                    ).format(child.body[0].data.name)
+                        else:
+                            asmnt = ('{name}=$({value})\n')
                     case Node(_):
                         asmnt = '{name}={value}\n'
                 asmnt = asmnt.format(name=child.args.data,
@@ -126,6 +216,8 @@ def compile_children(node: Node) -> list[str]:
                 output.append(asmnt)
             case MacroCall(macro_name='defun'):
                 output.append(compile_defun(child))
+            case MacroCall(macro_name='depun'):
+                output.append(compile_depun(child))
             case Expr(_):
                 output.append('{}\n'.format(compile_expr(child)))
             case Node(_):

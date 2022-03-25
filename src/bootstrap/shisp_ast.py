@@ -246,7 +246,7 @@ class VariableRef(Node):
 
 @dataclass
 class FunctionCall(Node):
-    pass
+    is_pure: bool = False
 
 @dataclass
 class ReturnNode(Node):

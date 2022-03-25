@@ -58,6 +58,12 @@ class Function():
     def __str__(self, *args, **kwargs):
         return "Function"
 
+
+@dataclass
+class PureFunction(Function):
+    pass
+
+
 @dataclass
 class Func_Argument(Variable):
     value: Any = None

@@ -7,7 +7,8 @@ This checks all variables after expansion.
 from typing import Optional
 
 from shisp_ast import Expr, Node, Symbol, MacroCall, VariableRef, ReturnNode
-from shisp_builtins import Let, Defun, Shell_Literal
+from ast_data import *
+from shisp_builtins import Let, Defun, Shell_Literal, Quote, QuasiQuote, Unquote
 from ast_data import Scope, Variable
 
 
@@ -46,8 +47,9 @@ def check_node(child: Node):
             var_ref = VariableRef.from_node(child)
             var_ref.data = var
             child.replace(var_ref)
-        case MacroCall(macro_name="shell-literal"):
-            print(1)
+        case (MacroCall(macro_name="shell-literal") | MacroCall(macro_name='quote') |
+        MacroCall(macro_name="quasiquote")):
+            pass
         case MacroCall(_):
             check_node(child.body[0])
         case Expr(_):
@@ -74,5 +76,8 @@ def check_variables(ast):
     base_node.scope.add_variable(Let)
     base_node.scope.add_variable(Defun)
     base_node.scope.add_variable(Shell_Literal)
+    base_node.scope.add_variable(Quote)
+    base_node.scope.add_variable(QuasiQuote)
+    base_node.scope.add_variable(Unquote)
     check_node_children(base_node)
     return ast
