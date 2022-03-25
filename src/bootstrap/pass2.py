@@ -4,7 +4,7 @@ For the second pass of the parser.
 The second pass simplifies the AST greately.
 """
 
-from shisp_ast import AST, Node, Comment, ListNode, Number, MacroCall, Space, Atom, Symbol, String
+from shisp_ast import AST, Node, Comment, Expr, Number, MacroCall, Space, Atom, Symbol, String
 from ast_data import Scope
 
 
@@ -30,8 +30,8 @@ def squash_comment(comment: Comment) -> Comment:
     return Comment(rows, columns, children=[], parent=None, data=data)
 
 
-def squash_list(old_list: ListNode) -> ListNode:
-    new_list = ListNode(old_list.row, old_list.column, children=[], parent=None)
+def squash_list(old_list: Expr) -> Expr:
+    new_list = Expr(old_list.row, old_list.column, children=[], parent=None)
 
     for child in old_list.children:
         if (new_child := squash_node(child)) is not None:
@@ -53,7 +53,7 @@ def squash_node(node: Node):
             return squash_comment(node)
         case Number(_):
             return Number(node.row, node.column, [], None, node.data)
-        case ListNode(_):
+        case Expr(_):
             return squash_list(node)
         case Symbol(_):
             return squash_symbol(node)

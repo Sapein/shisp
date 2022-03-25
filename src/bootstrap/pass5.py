@@ -6,7 +6,7 @@ This checks all variables after expansion.
 
 from typing import Optional
 
-from shisp_ast import ListNode, Node, Symbol, MacroCall, VariableRef
+from shisp_ast import Expr, Node, Symbol, MacroCall, VariableRef, ReturnNode
 from shisp_builtins import Let, Defun
 from ast_data import Scope, Variable
 
@@ -17,10 +17,6 @@ def check_scope(node: Node, name: str) -> tuple[bool, Optional[Variable]]:
     If not returns false.
     """
     try:
-        if isinstance(node, MacroCall) and (node.macro_name == 'defun' or node.macro_name == 'depun'):
-            for node in node.args.children:
-                if name in node.data:
-                    return True, node
         return name in node.scope.variables, node.scope.variables[name]
     except (AttributeError, KeyError):
         return False, None
@@ -39,6 +35,8 @@ def check_var_in_scope(node: Node, name: str) -> tuple[bool, Optional[Variable]]
 
 def check_node(child: Node):
     match child:
+        case ReturnNode(_):
+            check_node(child.children[0])
         case Symbol(_):
             in_scope, var = check_var_in_scope(child.parent, child.data)
             if not in_scope:
@@ -48,13 +46,9 @@ def check_node(child: Node):
             var_ref = VariableRef.from_node(child)
             var_ref.data = var
             child.replace(var_ref)
-        case MacroCall(macro_name="defun"):
-            check_node_children(child.body)
-        case MacroCall(macro_name="let"):
-            check_node(child.body)
-        case ListNode(_):
-            check_node_children(child)
-        case ListNode(_):
+        case MacroCall(_):
+            check_node(child.body[0])
+        case Expr(_):
             check_node_children(child)
 
 
@@ -64,9 +58,9 @@ def check_node_children(node: Node):
     """
     for child in node.children:
         match child:
-            case Symbol(_) | MacroCall(_):
+            case Symbol(_) | MacroCall(_) | ReturnNode(_):
                 check_node(child)
-            case ListNode(_):
+            case Expr(_):
                 check_node_children(child)
 
 

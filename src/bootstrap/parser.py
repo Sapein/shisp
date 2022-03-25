@@ -77,7 +77,7 @@ def match_tokens(token: Token, base_node: Node, context=(False, False, False), t
         case Token(char="(") if in_comment == False and in_string == False:
             if in_symbol == True:
                 raise SyntaxError("{}( not a valid symbol!\nTODO: Better Error".format(''.join(tokens_to_combine)))
-            new_node = ListNode.from_token(token)
+            new_node = Expr.from_token(token)
             base_node.add_child(new_node)
             base_node = new_node
         case Token(char=")") if in_comment == False and in_string == False:
@@ -86,7 +86,7 @@ def match_tokens(token: Token, base_node: Node, context=(False, False, False), t
                 node = to_node(tokens_to_combine, in_comment)
                 base_node.add_child(node)
                 tokens_to_combine = []
-            base_node.add_child(EndListNode.from_token(token))
+            base_node.add_child(EndExpr.from_token(token))
             base_node = base_node.parent
         case Token(char=' ') if in_comment == False and in_string == False:
             if in_symbol == True:
@@ -114,7 +114,7 @@ def parse_tokens(text: list[Token], program_name="test.shisp") -> AST:
     """
     Parse a list of tokens into an AST
     """
-    base_node = ListNode(0, 0, list(), None, scope=Scope())
+    base_node = Expr(0, 0, list(), None, scope=Scope())
     ast = AST(program_name, base_node)
     tokens_to_combine = []
     context = (False, False, False)

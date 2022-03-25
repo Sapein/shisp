@@ -2,6 +2,9 @@
 Compiler
 """
 
+from functools import reduce
+from operator import or_
+
 class Boilerplate:
     """
     Contains Boilerplate for compilization to POSIX Shell.
@@ -10,7 +13,7 @@ class Boilerplate:
     ifs: what to set the IFS too.
     """
     a_shebang = '#!/bin/sh'
-    ifs='unset IFS\nIFS=":"'
+    ifs='unset IFS\nIFS=" "'
 
     def __str__(self):
         output = ''
@@ -21,13 +24,13 @@ class Boilerplate:
         return output
 
 
-from shisp_ast import AST, Node, ListNode, Number, String, VariableRef, MacroCall, Comment, FunctionCall, ReturnNode
+from shisp_ast import AST, Node, Expr, Number, String, VariableRef, MacroCall, Comment, FunctionCall, ReturnNode
 
 def compile_return(node: ReturnNode) -> str:
     actual = node.children[0]
-    if node.parent.macro_name == "defun":
+    if node.parent.parent.macro_name == "defun":
         # IF we are defun
-        fname = node.parent.children[0].data
+        fname = node.parent.parent.children[0].data
         match actual:
             case Number(_) | String(_) | VariableRef(_):
                 return ('__{}_RVAL={}'
@@ -39,22 +42,17 @@ def compile_return(node: ReturnNode) -> str:
                 ).format(compile_node(actual),
                          fname,
                          actual.data.name)
-            case ListNode(_):
-                if len(actual.children) == 0:
-                    return '__{}_RVAL=nil'.format(fname)
-                elif len(actual.children) >= 1:
-                    raise SyntaxError("")
+            case Expr(_):
+                return '{} | read __{}_RVAL'.format(compile_expr(actual), fname)
 
 
 def compile_defun(node: MacroCall) -> str:
     name = node.children[0].data
     args = node.args
-    body = compile_children(node.body)
+    body = compile_children(node.body[0])
 
     definition = '\n{}() {{\n'.format(name)
-    new_body = ['\t{}\n'.format(l) for l in body.split('\n')]
-    body = ''.join(new_body).replace('\t\n', '')[:-1]
-
+    body = ['\t{}'.format(l) for l in body]
 
     compiled_args = ""
     arg_cleanup = "\n\tunset "
@@ -69,9 +67,9 @@ def compile_defun(node: MacroCall) -> str:
             arg_cleanup = '{}{} '.format(arg_cleanup,
                                          arg.data)
 
-    return '{}{}\n{}\n{}\n}}\n'.format(definition,
+    return '{}{}\n{}{}\n}}\n'.format(definition,
                                    compiled_args,
-                                   body,
+                                   ''.join(body),
                                    arg_cleanup)
 
 def compile_node(node: Node) -> str:
@@ -86,43 +84,47 @@ def compile_node(node: Node) -> str:
             return '{}'.format(node.data.name)
         case VariableRef(_):
             return '"${{{}}}"'.format(node.data.name)
-        case ListNode(_):
-            return compile_list(node)
+        case Expr(_):
+            return compile_expr(node)
         case ReturnNode(_):
             return compile_return(node)
-    print(node)
+    print(type(node))
     raise SyntaxError("Unknown Node!")
 
 
-def compile_list(node: ListNode) -> str:
-    list_call = [(isinstance(c, ListNode) or
-                  isinstance(c, FunctionCall) or
-                  isinstance(c, MacroCall))
-                 for c in node.children]
-    for b in list_call:
-        if b:
-            output = compile_children(node)
-            return '{}'.format(output)
-    if len(node.children) > 1:
-        return '"{}"'.format(':'.join([compile_node(c) for c in node.children]))
-    else:
-        return compile_node(node.children[0])
+def compile_expr(node: Expr) -> str:
+    has_expr = reduce(or_, [isinstance(c, Expr) for c in node.children])
+    has_fcal = reduce(or_, [isinstance(c, FunctionCall) for c in node.children])
+    has_mcal = reduce(or_, [isinstance(c, MacroCall) for c in node.children])
 
-def compile_children(node: Node) -> str:
-    output = ''
+    if has_expr or has_fcal or has_mcal:
+        return ''.join(compile_children(node))
+    elif len(node.children) == 0:
+        return '"nil"'
+    else:
+        return ' '.join(compile_children(node))
+
+def compile_children(node: Node) -> list[str]:
+    output = []
     for child in node.children:
         match child:
             case MacroCall(macro_name='let'):
-                asmnt = '{name}={value}\n'
+                match child.body[0]:
+                    case FunctionCall(_):
+                        asmnt = ('{{value}}\n'
+                                 '{{name}}="${{{{__{}_RVAL}}}}"\n'
+                                ).format(child.body[0].data.name)
+                    case Node(_):
+                        asmnt = '{name}={value}\n'
                 asmnt = asmnt.format(name=child.args.data,
-                                     value=compile_node(child.body))
-                output = '{}{}'.format(output, asmnt)
+                                     value=compile_node(child.body[0]))
+                output.append(asmnt)
             case MacroCall(macro_name='defun'):
-                output = '{}{}'.format(output, compile_defun(child))
-            case ListNode(_):
-                output = '{}{}\n'.format(output, compile_list(child))
+                output.append(compile_defun(child))
+            case Expr(_):
+                output.append('{}\n'.format(compile_expr(child)))
             case Node(_):
-                output = '{}{}'.format(output, compile_node(child))
+                output.append(compile_node(child))
     return output
 
 
@@ -131,4 +133,4 @@ def compile(ast: AST) -> str:
     Compiles the AST to POSIX Shell
     """
     return '{}\n{}'.format(Boilerplate(),
-                         compile_children(ast.base_node))
+                           ''.join(compile_children(ast.base_node)))

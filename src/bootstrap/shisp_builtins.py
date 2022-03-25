@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-from shisp_ast import Node, MacroCall, ListNode, Symbol, ReturnNode, Comment
+from shisp_ast import Node, MacroCall, Expr, Symbol, ReturnNode, Comment
 from ast_data import Builtin, Variable, Function, Scope, Func_Argument
 
 
@@ -39,7 +39,7 @@ class Let(Builtin):
 
         def add_var(node: Node, variable: Variable):
             match node:
-                case ListNode(_):
+                case Expr(_):
                     try:
                         node.scope.add_variable(variable)
                     except AttributeError:
@@ -48,7 +48,7 @@ class Let(Builtin):
                     if node.parent is not None:
                         add_var(node.parent)
                     else:
-                        raise SyntaxError("root is not ListNode!")
+                        raise SyntaxError("root is not Expr!")
 
         if cls.is_call(ast):
             if cls.valid_syntax(ast):
@@ -57,9 +57,9 @@ class Let(Builtin):
                 new_variable = Variable(name.data, value)
                 add_var(ast.parent, new_variable)
                 return MacroCall(ast.row, ast.column, ast.children[1:], 
-                                 None, cls, cls.name, name, value)
+                                 None, cls, cls.name, name, [value])
             else:
-                raise SyntaxError(("let only takes three arguments and name can't be ListNode\n"
+                raise SyntaxError(("let only takes three arguments and name can't be Expr\n"
                                    "Usage: `(let {name} {value})`\n"
                                    "TODO: Better Error message"))
         else:
@@ -77,7 +77,7 @@ class Defun(Builtin):
         Checks if the syntax is called properly or not.
         """
         return len(ast.children) >= 4 and isinstance(ast.children[1], Symbol) and \
-                isinstance(ast.children[2], ListNode) and isinstance(ast.children[3], ListNode)
+                isinstance(ast.children[2], Expr)
 
 
 
@@ -91,7 +91,7 @@ class Defun(Builtin):
 
         def add_var(node: Node, variable: Variable):
             match node:
-                case ListNode(_):
+                case Expr(_):
                     try:
                         node.scope.add_variable(variable)
                     except AttributeError:
@@ -100,7 +100,7 @@ class Defun(Builtin):
                     if node.parent is not None:
                         add_var(node.parent)
                     else:
-                        raise SyntaxError("root is not ListNode!")
+                        raise SyntaxError("root is not Expr!")
 
         if cls.is_call(ast):
             if cls.valid_syntax(ast):
@@ -115,7 +115,8 @@ class Defun(Builtin):
                 rnode = ReturnNode(last_node.row, last_node.column,
                                    [last_node], last_node.parent)
                 body[body.index(last_node)] = rnode
-                body = ListNode((body[0].row, body[-1].row), (body[0].column, body[-1].column),
+                last_node.parent = rnode.parent
+                body = Expr((body[0].row, body[-1].row), (body[0].column, body[-1].column),
                                 body, ast.parent, scope=Scope())
                 for child in body.children:
                     child.parent = body
@@ -125,7 +126,7 @@ class Defun(Builtin):
                 new_variable = Variable(name, func)
                 add_var(ast.parent, new_variable)
                 macro_call =  MacroCall(ast.row, ast.column, ast.children[1:], 
-                                       None, cls, cls.name, arglist, body)
+                                       None, cls, cls.name, arglist, [body])
                 body.parent = macro_call
                 return macro_call
 
@@ -136,5 +137,3 @@ class Defun(Builtin):
                                    "TODO: Better Error message"))
         else:
             return ast
-
-

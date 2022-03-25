@@ -4,15 +4,15 @@ For the third pass of the parser
 This handles expansion of all metamacros (let and defun)
 """
 
-from shisp_ast import AST, Node, ListNode, Symbol
+from shisp_ast import AST, Node, Expr, Symbol
 from ast_data import Scope
 from shisp_builtins import Let, Defun
 
-def search_children(node: Node):
-    for child in node.children:
+def search_children(children: list[Node]):
+    for child in children:
         match child:
-            case ListNode(_):
-                search_children(child)
+            case Expr(_):
+                search_children(child.children)
             case Symbol(data='let'):
                 new_node = Let.meta_eval(child.parent)
                 child.parent.replace(new_node)
@@ -27,5 +27,5 @@ def search_children(node: Node):
 def resolve_metamacros(ast: AST) -> AST:
     base_node = ast.base_node
     base_node.scope = Scope()
-    search_children(base_node)
+    search_children(base_node.children)
     return ast

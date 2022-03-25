@@ -28,9 +28,9 @@ def run_compiler(file_name: str, output_file: Optional[str] = None):
     ast = pass2.squash_ast(ast)
     ast = pass3.resolve_metamacros(ast)
     ast = pass4.expand_macros(ast)
-    ast.print_ast()
     ast = pass5.check_variables(ast)
     ast = pass6.replace_references(ast)
+    # ast.print_ast()
     output = compiler.compile(ast)
     if not output_file:
         output_file = '{}.sh'.format(ast.program_name)

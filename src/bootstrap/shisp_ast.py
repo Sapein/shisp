@@ -14,7 +14,7 @@ class AST:
     Represents the Abstract Syntax Tree for the Shisp Program.
     """
     program_name: str
-    base_node: "ListNode"
+    base_node: "Expr"
 
 
     def print_children(self, node, indent=0):
@@ -78,24 +78,15 @@ class Node(BaseNode):
 
     def replace_child(self, child, replacement):
         """ Replaces a child with another one """
-        def switch(replacement):
-            try:
-                replacement.switch_body()
-            except AttributeError:
-                pass
-        switch(replacement)
-        switch(child)
         index = self.children.index(child)
         self.children.insert(index, replacement)
         self.children.remove(child)
         replacement.parent = self
         if not replacement.children:
             replacement.children = [c for c in child.children]
-            for _child in child.children:
-                _child.replace_parent(replacement)
+        for _child in child.children:
+            _child.replace_parent(replacement)
         child.children.clear()
-        switch(child)
-        switch(replacement)
 
     def replace(self, replacement):
         self.parent.replace_child(self, replacement)
@@ -114,7 +105,7 @@ class Node(BaseNode):
             self.add_child(child)
 
 @dataclass
-class ListNode(Node):
+class Expr(Node):
     scope: Optional["Scope"] = None
     def __str__(self, *args, **kwargs):
         base = super().__str__(*args, **kwargs)
@@ -150,12 +141,27 @@ class MacroCall(BaseNode):
 
     def replace_child(self, child, replacement):
         """ Replaces a child with another one """
-        self.body = replacement
-        replacement.parent = self
-        child.children.clear()
-        child.parent = None
+        match self.body:
+            case [_]:
+                if len(self.body) == 1:
+                    self.body = [replacement]
+                    replacement.parent = self
+                elif len(self.body) > 1:
+                    index = self.body.index(child)
+                    self.body.insert(index, replacement)
+                    self.body.remove(child)
+                    replacement.parent = self
 
-
+        if child in self.children:
+            index = self.children.index(child)
+            self.children.insert(index, replacement)
+            self.children.remove(child)
+            replacement.parent = self
+            if not replacement.children:
+                replacement.children = [c for c in child.children]
+            for _child in child.children:
+                _child.replace_parent(replacement)
+            child.children.clear()
 
 
 @dataclass
@@ -230,7 +236,7 @@ class String(Text):
 
 
 @dataclass
-class EndListNode(Space):
+class EndExpr(Space):
     data = ')'
 
 
