@@ -17,7 +17,7 @@ import pass6
 import compiler
 
 
-def run_compiler(file_name: str, output_file: Optional[str] = None): 
+def run_compiler(file_name: str, output_file: Optional[str] = None):
     try:
         with open(file_name, 'r') as f:
             tokenized = tokens.parse_file(f.read())
@@ -38,7 +38,7 @@ def run_compiler(file_name: str, output_file: Optional[str] = None):
         f.write(output)
 
 def compiler_help():
-    return 'usage: python3 main.py file (argument)'
+    return 'usage: python3 main.py in_file (out_file)'
 
 match argv:
     case [a, b]:
