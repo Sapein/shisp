@@ -29,7 +29,7 @@ class AST:
             if child.children:
                 response = self.print_children(child, indent+1)
                 new_response = response
-                output = '{}{}'.format(output, new_response)
+                output = '{}{}\n'.format(output, new_response)
 
         return output.replace('|-- \n', '|\n')[:-1]
 
@@ -171,7 +171,7 @@ class Atom(Node):
     def __str__(self, *args, **kwargs):
         base = super().__str__(*args, **kwargs)
         output = ('{}'
-                  'Data: {}\n'
+                  'Data: {}'
                  ).format(base, self.data)
         return output
     
@@ -220,20 +220,16 @@ class Symbol(Atom):
 
 @dataclass
 class Comment(Atom):
-    def __str__(self, *args, **kwargs):
-        general = super().__str__(*args, **kwargs)
-        general = '{}{}'.format(general, 'Data: {}'.format(self.data))
-        return general
-
+    pass
 
 @dataclass
-class Text(Atom):
-    data: Optional[str] = None
+class AtomSym(Atom):
+    pass
 
 
 @dataclass
 class Number(Atom):
-    data: Optional[int] = None
+    pass
 
 
 @dataclass
@@ -247,13 +243,21 @@ class NewLine(Space):
 
 
 @dataclass
-class String(Text):
+class String(Atom):
     pass
 
 
 @dataclass
 class EndExpr(Space):
     data = ')'
+
+@dataclass
+class Semicolon(Space):
+    data = ';'
+
+@dataclass
+class SingleQuote(Space):
+    data = "'"
 
 
 @dataclass

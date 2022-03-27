@@ -13,11 +13,13 @@ import pass3
 import pass4
 import pass5
 import pass6
+import pass7
 
 import compiler
 
 
 def run_compiler(file_name: str, output_file: Optional[str] = None):
+    file_name='test.shisp'
     try:
         with open(file_name, 'r') as f:
             tokenized = tokens.parse_file(f.read())
@@ -25,13 +27,14 @@ def run_compiler(file_name: str, output_file: Optional[str] = None):
         print("File {} not found!".format(file_name))
         return
     ast = parser.parse_tokens(tokenized, '.'.join(file_name.split('.')[:-1]))
-    ast = pass2.squash_ast(ast)
-    ast = pass3.resolve_metamacros(ast)
-    ast = pass4.expand_macros(ast)
-    ast = pass5.check_variables(ast)
-    ast = pass6.replace_references(ast)
+    ast = pass2.combine_ast(ast)
+    ast = pass3.squash_ast(ast)
+    ast = pass4.resolve_metamacros(ast)
+    ast = pass5.expand_macros(ast)
+    ast = pass6.check_variables(ast)
+    ast = pass7.replace_references(ast)
+    ast.print_ast()
     output = compiler.compile(ast)
-    print(ast.program_name)
     if not output_file:
         output_file = '{}.sh'.format(ast.program_name)
     with open(output_file,'w') as f:

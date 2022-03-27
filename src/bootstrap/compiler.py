@@ -50,22 +50,22 @@ def compile_return(node: ReturnNode) -> str:
         fname = node.parent.parent.children[0].escape_data()
         match actual:
             case Number(_) | String(_):
-                return ('printf -- {}\n'
+                return ("printf -- {}'\\n'"
                        ).format(compile_node(actual))
             case VariableRef(_):
-                return ('printf -- {}\n'
+                return ("printf -- {}'\\n'"
                        ).format(compile_node(actual))
             case FunctionCall(_):
                 if actual.pure:
-                    return ('printf -- $({})\n'
+                    return ("printf -- $({})'\\n'"
                            ).format(compile_node(actual))
                 else:
                     return ('{}'
-                            'printf -- ${{__{}_RVAL}}\n'
+                            "printf -- ${{__{}_RVAL}}'\\n'"
                            ).format(compile_node(actual),
                                     actual.data.name)
             case Expr(_):
-                return ('printf -- $({})\n').format(compile_expr(actual))
+                return ("printf -- $({})'\\n'").format(compile_expr(actual))
 
 def compile_depun(node: MacroCall) -> str:
     name = node.children[0].escape_data()

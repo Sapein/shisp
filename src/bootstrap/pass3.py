@@ -9,25 +9,7 @@ from ast_data import Scope
 
 
 def squash_comment(comment: Comment) -> Comment:
-    """
-    Squashes a comment into a singular node)
-    """
-    def get_end(data: tuple[int, int] | int) -> int:
-        match data:
-            case (start, end):
-                return end
-            case _:
-                return data
-
-    last_node = comment.children[-1]
-    rows = (comment.row, get_end(last_node.row))
-    columns = (comment.column, get_end(last_node.column))
-    data = ''
-    for child in comment.children:
-        data = '{}{}'.format(data, child.data)
-    
-    comment.children.clear()
-    return Comment(rows, columns, children=[], parent=None, data=data)
+    return Comment(comment.row, comment.column, [], None, comment.data)
 
 
 def squash_list(old_list: Expr) -> Expr:
@@ -41,14 +23,17 @@ def squash_list(old_list: Expr) -> Expr:
 
 
 def squash_atom(atom: Atom) -> Atom:
-    return Atom(atom.row, atom.column, [], None, atom.data)
+    a = Atom.from_node(atom, False)
+    return a
 
 def squash_symbol(sym: Symbol) -> Symbol:
-    return Symbol(sym.row, sym.column, [], None, sym.data)
+    return Symbol.from_node(sym, False)
 
 
 def squash_node(node: Node):
     match node:
+        case Space(_):
+            return None
         case Comment(_):
             return squash_comment(node)
         case Number(_):
@@ -56,14 +41,13 @@ def squash_node(node: Node):
         case Expr(_):
             return squash_list(node)
         case Symbol(_):
-            return squash_symbol(node)
-        case Space(_):
-            return None
+            return Symbol(node.row, node.column, [], None, node.data)
         case String(_):
-            return node
-        case Node(data="'"):
-            return squash_symbol(node)
+            return String(node.row, node.column, [], None, data=node.data)
+        case Atom(_):
+            return Atom(node.row, node.column, [], None, data=atom.data)
 
+    print(node)
     raise SyntaxError("Unknown Node")
 
 

@@ -11,7 +11,7 @@ class Token:
     char: str
 
 def parse_file(text: str):
-    text = text.replace('\r', '').replace('\n', '\r\n')
+    text = text.replace('\r', '').replace('\n', '\n\r')
     lines = text.split('\r')
     tokenized = []
     for row, line in enumerate(lines, start=1):
