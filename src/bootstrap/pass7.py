@@ -4,7 +4,7 @@ and function calls where necessary with the proper node.
 """
 
 from shisp_ast import AST, Node, Symbol, VariableRef, FunctionCall, MacroCall, Expr
-from ast_data import Variable, Function, PureFunction
+from ast_data import Variable, Function, PureFunction, Macro
 
 def check_node(child: Node, *, qq=False):
     match child:
@@ -13,6 +13,11 @@ def check_node(child: Node, *, qq=False):
                 isinstance(child.data.value, PureFunction)):
                 call = FunctionCall.from_node(child)
                 call.is_pure = True
+                child.replace(call)
+            if (child.parent.children[0] is child and
+                isinstance(child.data.value, Macro)):
+                call = FunctionCall.from_node(child)
+                call.is_macro = True
                 child.replace(call)
             elif (child.parent.children[0] is child and
                 isinstance(child.data.value, Function)):

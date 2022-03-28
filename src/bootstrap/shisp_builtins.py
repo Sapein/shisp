@@ -11,7 +11,7 @@ from typing import Optional
 
 
 from shisp_ast import Node, MacroCall, Expr, Symbol, ReturnNode, Comment, Atom
-from ast_data import Builtin, Variable, Function, Scope, Func_Argument, PureFunction
+from ast_data import Builtin, Variable, Function, Scope, Func_Argument, PureFunction, Macro
 
 
 @dataclass
@@ -499,7 +499,11 @@ class Demac(Builtin):
                     if node.parent is not None:
                         add_var(node.parent)
                     else:
-                        raise SyntaxError("root is not Expr!")
+                        err = ("The root node is not an Expr (as it should be)!\n"
+                               "If you managed to find this, this is a compiler bug.\n"
+                               "Please report it to the maintainers!"
+                              )
+                        raise SyntaxError(err)
 
         if cls.is_call(ast):
             if cls.valid_syntax(ast):
@@ -521,7 +525,7 @@ class Demac(Builtin):
                     child.parent = body
                 for node in arglist.children:
                     body.scope.add_variable(Func_Argument(node.data))
-                func = Function(body.scope, body, arglist)
+                func = Macro(body.scope, body, arglist)
                 new_variable = Variable(name, func)
                 add_var(ast.parent, new_variable)
                 macro_call =  MacroCall(ast.row, ast.column, ast.children[1:],
@@ -530,8 +534,8 @@ class Demac(Builtin):
                 return macro_call
 
             else:
-                raise SyntaxError(("Defun used improperly!\n"
-                                   "Usage: `(defun {name} (args) (body))`\n"
+                raise SyntaxError(("Demac used improperly!\n"
+                                   "Usage: `(demac {name} (args) (body))`\n"
                                    "Can not use String as name!\n"
                                    "TODO: Better Error message"))
         else:

@@ -279,6 +279,7 @@ class VariableRef(Node):
 @dataclass
 class FunctionCall(Node):
     is_pure: bool = False
+    is_macro: bool = False
 
 @dataclass
 class ReturnNode(Node):

@@ -8,7 +8,7 @@ from typing import Optional
 
 from shisp_ast import Expr, Node, Symbol, MacroCall, VariableRef, ReturnNode
 from ast_data import *
-from shisp_builtins import Let, Defun, Shell_Literal, Quote, QuasiQuote, Unquote, Unquote_Splice
+import shisp_builtins as sbuilt
 from ast_data import Scope, Variable
 
 
@@ -73,12 +73,13 @@ def check_variables(ast):
     Checks variable scopes
     """
     base_node = ast.base_node
-    base_node.scope.add_variable(Let)
-    base_node.scope.add_variable(Defun)
-    base_node.scope.add_variable(Shell_Literal)
-    base_node.scope.add_variable(Quote)
-    base_node.scope.add_variable(QuasiQuote)
-    base_node.scope.add_variable(Unquote)
-    base_node.scope.add_variable(Unquote_Splice)
+    base_node.scope.add_variable(sbuilt.Let)
+    base_node.scope.add_variable(sbuilt.Defun)
+    base_node.scope.add_variable(sbuilt.Depun)
+    base_node.scope.add_variable(sbuilt.Shell_Literal)
+    base_node.scope.add_variable(sbuilt.Quote)
+    base_node.scope.add_variable(sbuilt.QuasiQuote)
+    base_node.scope.add_variable(sbuilt.Unquote)
+    base_node.scope.add_variable(sbuilt.Unquote_Splice)
     check_node_children(base_node)
     return ast

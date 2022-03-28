@@ -5,6 +5,8 @@ Compiler
 from functools import reduce
 from operator import or_
 
+import macro
+
 class Boilerplate:
     """
     Contains Boilerplate for compilization to POSIX Shell.
@@ -66,6 +68,10 @@ def compile_return(node: ReturnNode) -> str:
                                     actual.data.name)
             case Expr(_):
                 return ("printf -- $({})'\\n'").format(compile_expr(actual))
+
+def compile_demac(node: MacroCall) -> str:
+    pass
+
 
 def compile_depun(node: MacroCall) -> str:
     name = node.children[0].escape_data()
@@ -148,7 +154,7 @@ def compile_node(node: Node, escaped=True) -> str:
 def compile_expr(node: Expr) -> str:
     has_expr = reduce(or_, [isinstance(c, Expr) for c in node.children])
     has_fcal = reduce(or_, [isinstance(c, FunctionCall) for c in node.children])
-    has_mcal = reduce(or_, [isinstance(c, MacroCall) for c in node.children])
+    has_mmcal = reduce(or_, [isinstance(c, MacroCall) for c in node.children])
 
     if has_expr or has_fcal or has_mcal:
         return ' '.join(compile_children(node))
@@ -227,6 +233,8 @@ def compile_children(node: Node) -> list[str]:
                 output.append(compile_defun(child))
             case MacroCall(macro_name='depun'):
                 output.append(compile_depun(child))
+            case MacroCall(macro_name='demac'):
+                output.append(compile_demac(child))
             case Expr(_):
                 output.append('{}\n'.format(compile_expr(child)))
             case Node(_):

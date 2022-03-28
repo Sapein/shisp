@@ -22,6 +22,7 @@ def search_children(children: list[Node], *, qq: bool = False):
                 new_node = builtin.Let.meta_eval(child.parent)
                 child.parent.replace(new_node)
                 search_children(new_node.body)
+
             case Symbol(data=builtin.Defun.name) if not qq:
                 new_node = builtin.Defun.meta_eval(child.parent)
                 child.parent.replace(new_node)
@@ -30,6 +31,12 @@ def search_children(children: list[Node], *, qq: bool = False):
                 new_node = builtin.Depun.meta_eval(child.parent)
                 child.parent.replace(new_node)
                 search_children(new_node.body)
+
+            case Symbol(data=builtin.Demac.name) if not qq:
+                new_node = builtin.Demac.meta_eval(child.parent)
+                child.parent.replace(new_node)
+                search_children(new_node.body)
+
             case Symbol(data=builtin.Quote.name) if not qq:
                 new_node = builtin.Quote.meta_eval(child.parent)
                 child.parent.replace(new_node)
@@ -39,14 +46,16 @@ def search_children(children: list[Node], *, qq: bool = False):
             case Symbol(data=builtin.QuasiQuote.name) if not qq:
                 new_node = builtin.QuasiQuote.meta_eval(child.parent)
                 child.parent.replace(new_node)
-                search_children(new_node.body, qq=True)
+                search_children([new_node.body], qq=True)
 
             case Symbol(data=builtin.Unquote.name):
                 new_node = builtin.Unquote.meta_eval(child.parent)
                 child.parent.replace(new_node)
+                search_children([new_body.body], qq=False) 
             case Symbol(data=builtin.Unquote_Splice.name):
                 new_node = builtin.Unquote_Splice.meta_eval(child.parent)
                 child.parent.replace(new_node)
+                search_children([new_body.body], qq=False) 
 
 def resolve_metamacros(ast: AST) -> AST:
     base_node = ast.base_node
