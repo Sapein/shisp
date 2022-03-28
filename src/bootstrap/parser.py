@@ -1,5 +1,10 @@
 """
-Parser
+This module contains most of the logic for the
+initial pass of the parser, which builds a rather
+basic and rudimentary AST. 
+
+We only need to make sure things are syntatically correct
+at this stage.
 """
 
 import re
@@ -15,19 +20,37 @@ from tokens import Token
 
 
 def is_number(tokens: str) -> bool:
+    """
+    Checks to see if a collection of tokens is a 'number'
+    for Shisp purposes.
+    """
     return re.match('[0-9]+', tokens)
 
 
 def is_symbol(tokens: str) -> bool:
+    """
+    Checks to see if a collection of tokens is a 'string'
+    for Shisp purposes.
+    """
     return re.match('[a-zA-Z\+\-\*\/]+[a-zA-Z0-9]*', tokens)
 
 
 @dataclass
 class ParserState:
+    """
+    This class exists just for us to track parser state.
+    """
     tokens: list[Token]
     base_node: sast.Node
 
-def handle_tokens(state: ParserState) -> tuple[sast.Node, ParserState]:
+def handle_tokens(state: ParserState) -> tuple[sast.Atom | sast.Symbol | sast.Number, ParserState]:
+    """
+    Handles contexts where we need to deal with multiple tokens.
+
+    It returns both Parser State *and* and the new node.
+
+    The node may be sast.Atom, sast.Symbol, or sast.Number
+    """
     if len(state.tokens) == 0:
         raise IndexError()
     if is_number(''.join([c.char for c in state.tokens])):
@@ -66,6 +89,15 @@ def handle_token(token: Token, state: ParserState) -> ParserState:
 
         case Token(char="'") if not (basestr or basecom):
             node = sast.SingleQuote.from_token(token)
+            state.base_node.add_child(node)
+        case Token(char='`') if not (basestr or basecom):
+            node = sast.Backtick.from_token(token)
+            state.base_node.add_child(node)
+        case Token(char=',') if not (basestr or basecom):
+            node = sast.Comma.from_token(token)
+            state.base_node.add_child(node)
+        case Token(char='@') if not (basestr or basecom):
+            node = sast.At.from_token(token)
             state.base_node.add_child(node)
 
         case Token(char='"') if basestr:

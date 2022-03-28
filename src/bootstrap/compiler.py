@@ -174,7 +174,6 @@ def compile_quote(body: list[Node]) -> str:
     return "'{}'".format(' '.join(output))
 
 def compile_quasiquote(body: list[Node]) -> str:
-    raise NotImplementedError
     def _compile_node(node: Node) -> str:
         match node:
             case Expr(_):
@@ -182,21 +181,30 @@ def compile_quasiquote(body: list[Node]) -> str:
                 for child in node.children:
                     output.append(_compile_node(child))
                 return '({})'.format(' '.join(output))
+            case MacroCall(macro_name='unquote'):
+                response = compile_node(node.body)
+                return '"{}"'.format(response)
+            case MacroCall(macro_name='unquote-splice'):
+                response = compile_node(node.body)
+                if response[0] == '(' and response[-1] == ')':
+                    response = response[1:-1]
+                return '"{}"'.format(response)
             case Node(_):
                 return node.data
+        print(node)
         raise SyntaxError
     output = []
     for node in body:
         output.append(_compile_node(node))
-    return "'{}'".format(' '.join(output))
+    return '"{}"'.format(' '.join(output))
 
 
 def compile_children(node: Node) -> list[str]:
     output = []
     for child in node.children:
         match child:
-            case MacroCall(macro_name='quasi-quote'):
-                raise NotImplementedError
+            case MacroCall(macro_name='quasiquote'):
+                output.append(compile_quasiquote(child.body))
             case MacroCall(macro_name='quote'):
                 output.append(compile_quote(child.body))
             case MacroCall(macro_name='shell-literal'):

@@ -6,7 +6,7 @@ and function calls where necessary with the proper node.
 from shisp_ast import AST, Node, Symbol, VariableRef, FunctionCall, MacroCall, Expr
 from ast_data import Variable, Function, PureFunction
 
-def check_node(node: Node):
+def check_node(child: Node, *, qq=False):
     match child:
         case VariableRef(_):
             if (child.parent.children[0] is child and
@@ -19,14 +19,14 @@ def check_node(node: Node):
                 call = FunctionCall.from_node(child)
                 child.replace(call)
         case MacroCall(_):
-            check_children(child.body)
+            check_children(child.body, qq)
         case Expr(_):
-            check_children(child)
+            check_children(child.children, qq)
 
-def check_children(nodes: list[Node]):
+def check_children(nodes: list[Node], *, qq=False):
     for child in nodes:
         match child:
-            case VariableRef(_):
+            case VariableRef(_) if not qq:
                 is_call = child.parent.children[0] is child
                 is_call = is_call or (isinstance(child.parent, MacroCall) and
                                       child.parent.macro_name == 'let')
@@ -38,12 +38,16 @@ def check_children(nodes: list[Node]):
                 elif is_call and isinstance(child.data.value, Function):
                     call = FunctionCall.from_node(child)
                     child.replace(call)
-            case MacroCall(macro_name="shell-literal"):
+            case (MacroCall(macro_name="shell-literal") | MacroCall(macro_name='quote')) if not qq:
                 pass
-            case MacroCall(_):
-                check_children(child.body)
+            case MacroCall(macro_name='unquote') | MacroCall(macro_name='unquote-splice'):
+                check_node(child.body)
+            case MacroCall(macro_name='quasiquote') if not qq:
+                check_node(child.body, qq=True)
+            case MacroCall(_) if not qq:
+                check_children(child.body, qq=qq)
             case Expr(_):
-                check_children(child.children)
+                check_children(child.children, qq=qq)
 
 def replace_references(ast: AST) -> AST:
     base_node = ast.base_node

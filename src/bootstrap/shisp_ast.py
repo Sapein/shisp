@@ -261,6 +261,18 @@ class SingleQuote(Space):
 
 
 @dataclass
+class Backtick(Space):
+    data = '`'
+
+@dataclass
+class Comma(Space):
+    data = ','
+
+@dataclass
+class At(Space):
+    data = '@'
+
+@dataclass
 class VariableRef(Node):
     pass
 
