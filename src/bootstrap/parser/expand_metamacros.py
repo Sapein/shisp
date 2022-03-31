@@ -9,7 +9,6 @@ from ast_data import Scope
 import shisp_builtins as builtin
 
 def search_children(children: list[Node], *, qq: bool = False):
-    print('searching!, {}'.format(qq))
     for child in children:
         match child:
             case ReturnNode(_) if not qq:
