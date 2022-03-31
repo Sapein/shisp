@@ -135,12 +135,12 @@ def handle_token(token: Token, state: ParserState) -> ParserState:
     return state
 
 
-def parse_tokens(text: list[Token], program_name="test.shisp") -> sast.AST:
+def parse_tokens(text: list[Token]) -> sast.AST:
     """
     Parse a list of tokens into an AST
     """
     base_node = sast.Expr(0, 0, list(), None)
-    ast = sast.AST(program_name, base_node)
+    ast = sast.AST(base_node)
     state = ParserState([], base_node)
     for token in text:
         state = handle_token(token, state)
