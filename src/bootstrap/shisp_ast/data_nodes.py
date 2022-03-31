@@ -5,7 +5,7 @@ Holds data nodes for the ast
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from shisp_ast import Node
+from shisp_ast.ast import Node
 
 @dataclass
 class Scope():

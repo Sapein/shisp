@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-from shisp_ast import Node, MacroCall, Expr, Symbol, ReturnNode, Comment, Atom
-from ast_data import Builtin, Variable, Function, Scope, Func_Argument, PureFunction, Macro
+from shisp_ast.ast import Node, MacroCall, Expr, Symbol, ReturnNode, Comment, Atom
+from shisp_ast.data_nodes import Builtin, Variable, Function, Scope, Func_Argument, PureFunction, Macro
 
 
 @dataclass

@@ -5,7 +5,7 @@ Contains all AST related stuff
 from typing import Optional, Any
 from dataclasses import dataclass 
 
-from tokens import Token
+from lexer.tokens import Token
 
 
 @dataclass
