@@ -13,7 +13,6 @@ class AST:
     """
     Represents the Abstract Syntax Tree for the Shisp Program.
     """
-    program_name: str
     base_node: "Expr"
 
 
