@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import compiler_errors
 
 @dataclass(frozen=True)
-class CompilerState:
+class GlobalState:
     """
     This encapsulates all compiler state that
     we need to keep track of across modules.
