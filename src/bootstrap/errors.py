@@ -2,11 +2,21 @@
 This contains all of the compiler errors and warnings
 """
 
-class ShispWarn(Exception):
-    pass
+from dataclasses import dataclass
 
-class ShispError(Exception):
-    pass
 
+@dataclass(frozen=True)
+class ShispError():
+    context: "Node"
+
+@dataclass(frozen=True)
 class ParserError(ShispError):
+    pass
+
+@dataclass(frozen=True)
+class CompilerError(ShispError):
+    pass
+
+@dataclass(frozen=True)
+class NewLine_InStr(ParserError):
     pass
