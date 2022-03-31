@@ -2,12 +2,18 @@
 This contains all of the compiler errors and warnings
 """
 
+from typing import Optional
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class ShispError():
-    context: "Node"
+    context: Optional["Node"]
+    output: str
+
+@dataclass
+class ShispWarn():
+    pass
 
 @dataclass(frozen=True)
 class ParserError(ShispError):
@@ -17,6 +23,5 @@ class ParserError(ShispError):
 class CompilerError(ShispError):
     pass
 
-@dataclass(frozen=True)
-class NewLine_InStr(ParserError):
+class AbortParse(Exception):
     pass

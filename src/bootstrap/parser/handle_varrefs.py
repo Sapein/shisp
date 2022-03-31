@@ -6,10 +6,9 @@ This checks all variables after expansion.
 
 from typing import Optional
 
-from shisp_ast import Expr, Node, Symbol, MacroCall, VariableRef, ReturnNode
-from ast_data import *
+from shisp_ast.ast import Expr, Node, Symbol, MacroCall, VariableRef, ReturnNode
+from shisp_ast.data_nodes import *
 import shisp_builtins as sbuilt
-from ast_data import Scope, Variable
 
 
 def check_scope(node: Node, name: str) -> tuple[bool, Optional[Variable]]:

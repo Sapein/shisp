@@ -4,8 +4,8 @@ For the third pass of the parser
 This handles expansion of all metamacros (let and defun)
 """
 
-from shisp_ast import AST, Node, Expr, Symbol, ReturnNode
-from ast_data import Scope
+from shisp_ast.ast import AST, Node, Expr, Symbol, ReturnNode
+from shisp_ast.data_nodes import Scope
 import shisp_builtins as builtin
 
 def search_children(children: list[Node], *, qq: bool = False):

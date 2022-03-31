@@ -5,8 +5,8 @@ We're specifically just ensuring certain syntatic sugar is handled
 properly.
 """
 
-import shisp_ast as sast
-import ast_data
+import shisp_ast.ast as sast
+import shisp_ast.data_nodes as ast_data
 
 def handle_quote(node: sast.SingleQuote) -> list:
     def handle_rc(rc: int | tuple[int, int]) -> int | tuple[int, int]:

@@ -4,8 +4,8 @@ For the second pass of the parser.
 The second pass simplifies the AST greately.
 """
 
-from shisp_ast import AST, Node, Comment, Expr, Number, MacroCall, Space, Atom, Symbol, String
-from ast_data import Scope
+from shisp_ast.ast import AST, Node, Comment, Expr, Number, MacroCall, Space, Atom, Symbol, String
+from shisp_ast.data_nodes import Scope
 
 
 def squash_comment(comment: Comment) -> Comment:

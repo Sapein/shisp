@@ -3,8 +3,8 @@ Handles replacing all variable references
 and function calls where necessary with the proper node.
 """
 
-from shisp_ast import AST, Node, Symbol, VariableRef, FunctionCall, MacroCall, Expr
-from ast_data import Variable, Function, PureFunction, Macro
+from shisp_ast.ast import AST, Node, Symbol, VariableRef, FunctionCall, MacroCall, Expr
+from shisp_ast.data_nodes import Variable, Function, PureFunction, Macro
 
 def check_node(child: Node, *, qq=False):
     match child:

@@ -5,9 +5,10 @@ This module is the 'main' module for the bootstrap compiler.
 from sys import argv
 from typing import Optional
 
-import lexer
+import lexer.tokens
 import parser
-import compiler
+import state
+import errors
 
 
 def run_compiler(file_name: str, output_file: Optional[str] = None):
@@ -19,12 +20,21 @@ def run_compiler(file_name: str, output_file: Optional[str] = None):
         print("File {} not found!".format(file_name))
         return
 
-    ast = parser.parse_tokens.parse_tokens(tokens)
-    ast = parser.desugar_source.combine_ast(ast)
-    ast = parser.simplify_ast.squash_ast(ast)
-    ast = parser.expand_metamacros.resolve_metamacros(ast)
-    ast = parser.handle_varrefs.check_variables(ast)
-    ast = parser.handle_functions.replace_references(ast)
+    _state = state.GlobalState([file_name], {}, {}, [], file_name)
+    try:
+        ast = parser.parse_tokens.parse_tokens(tokens, _state)
+        ast = parser.desugar_source.combine_ast(ast)
+        ast = parser.simplify_ast.squash_ast(ast)
+        ast = parser.expand_metamacros.resolve_metamacros(ast)
+        ast = parser.handle_varrefs.check_variables(ast)
+        ast = parser.handle_functions.replace_references(ast)
+    except errors.AbortParse:
+        for k in _state.errors:
+            print("{}:\n".format(k))
+            for err in _state.errors[k]:
+                print(err.output)
+                print('\n')
+        return
 
     output = compiler.compiler.compile(ast)
 
